@@ -1,0 +1,11 @@
+server/data/
+tools/
+# songs never go in this folder or on GitHub: they live in ../overdrive-music (see desktop/lock-music.py)
+*.mp3
+*.odm
+media/music/
+# desktop builds are made in ../overdrive-build, but just in case
+desktop/node_modules/
+desktop/dist/
+desktop/app/
+*.exe

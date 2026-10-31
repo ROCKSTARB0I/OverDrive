@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- account server address; leave empty when the game and server run together. On GitHub Pages put the hosted server URL here -->
+<meta name="overdrive-server" content="">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OVERDRIVE</title>
+<!-- three.js and the fonts are bundled in vendor/ so the game (and the desktop .exe) runs without an internet connection -->
+<link rel="stylesheet" href="vendor/fonts/fonts.css">
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three/build/three.module.js",
+  "three/addons/": "./vendor/three/examples/jsm/"
+} }
+</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="stage"></div>
+
+<!-- REDLINE studio intro (plays first) -->
+<div id="intro" class="hidden"><video id="introvid" src="media/redline.mp4" preload="auto" playsinline></video><div id="soundhint" class="hidden">CLICK FOR SOUND</div></div>
+
+<!-- start gate: one press unlocks audio, then the intro rolls -->
+<div id="gate">
+  <div id="gateload"><i></i></div>
+  <div id="gatekey">LOADING</div>
+  <p class="rights"><b>OVERDRIVE &copy; 2026 Ruff Dogs Studios. All rights reserved.</b><br>Music on the in-game radio is copyrighted by its respective artists, labels and publishers. It is not owned by Ruff Dogs Studios; all rights belong to its original creators and rights holders.</p>
+</div>
+
+<!-- title splash -->
+<div id="splash" class="hidden">
+  <div class="splash-inner">
+    <div class="kicker">RUFF DOGS STUDIOS PRESENTS</div>
+    <h1 class="logo">OVER<span>DRIVE</span></h1>
+    <div class="sub">NIGHT CIRCUIT</div>
+    <div id="loadbar"><i></i></div>
+    <div id="presskey"></div>
+    <p class="rights"><b>OVERDRIVE &copy; 2026 Ruff Dogs Studios. All rights reserved.</b><br>Music on the in-game radio is copyrighted by its respective artists, labels and publishers. It is not owned by Ruff Dogs Studios; all rights belong to its original creators and rights holders.</p>
+  </div>
+</div>
+
+<!-- menu overlay (the menu itself is the car interior) -->
+<div id="menuui" class="hidden">
+  <div class="brand">OVER<span>DRIVE</span></div>
+  <div id="menuhint">Click the console buttons &middot; pick a mode &middot; <b>turn the key</b> to drive</div>
+  <div id="tooltip"></div>
+  <div id="cash">$0</div>
+  <div id="place" class="hidden"></div>
+  <button id="back" class="hidden">&#9664; BACK</button>
+  <div id="copy">&copy; 2026 Ruff Dogs Studios &middot; Radio music &copy; its respective owners, not Ruff Dogs Studios &middot; <a href="#" id="termslink">Terms</a></div>
+</div>
+
+<!-- race HUD -->
+<div id="hud" class="hidden">
+  <div id="hud-tl">
+    <div class="pos"><b id="h-pos">1</b><small>/<span id="h-of">6</span></small></div>
+    <div class="laps">LAP <b id="h-lap">1</b>/<span id="h-laps">3</span></div>
+    <div class="times">
+      <div><label>TIME</label><span id="h-time">0:00.000</span></div>
+      <div><label>LAP</label><span id="h-laptime">0:00.000</span></div>
+      <div><label>BEST</label><span id="h-best">--:--.---</span></div>
+    </div>
+  </div>
+  <canvas id="minimap" width="240" height="240"></canvas>
+  <div id="board"></div>
+  <div id="hud-br">
+    <canvas id="gauge" width="340" height="340"></canvas>
+  </div>
+  <div id="drift"><div class="pts" id="d-pts">0</div><div class="mul" id="d-mul">x1</div><div class="lbl">DRIFT</div></div>
+  <div id="pops"></div>
+  <div id="center"></div>
+  <div id="wrongway">WRONG WAY</div>
+  <div id="rewind">&#9664;&#9664; REWIND</div>
+  <div id="camhint"></div>
+</div>
+
+<div id="pause" class="overlay hidden">
+  <div class="panel">
+    <h2>PAUSED</h2>
+    <button data-act="resume">RESUME</button>
+    <button data-act="restart">RESTART</button>
+    <button data-act="garage">BACK TO GARAGE</button>
+  </div>
+</div>
+
+<div id="results" class="overlay hidden">
+  <div class="panel wide">
+    <h2 id="r-title">RESULTS</h2>
+    <table id="r-table"></table>
+    <div id="r-stats"></div>
+    <div class="row">
+      <button data-act="restart">RACE AGAIN</button>
+      <button data-act="garage">BACK TO GARAGE</button>
+    </div>
+  </div>
+</div>
+
+<div id="fade"></div>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
