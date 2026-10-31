@@ -13,7 +13,12 @@ export class Intro {
       const ok = () => { this.ready = true; res(true); };
       if (v.readyState >= 3) return ok();
       v.addEventListener('canplaythrough', ok, { once: true });
-      v.addEventListener('error', () => res(false), { once: true });
+      // the GitHub copy doesn't carry the video (too big to upload there): stream it from the OVERDRIVE server instead
+      const server = ((window.overdriveDesktop && window.overdriveDesktop.server) || document.querySelector('meta[name="overdrive-server"]')?.content || '').trim().replace(/\/$/, '');
+      v.addEventListener('error', () => {
+        if (server && !v.src.startsWith(server)) { v.src = server + '/media/redline.mp4'; v.load(); }
+        else res(false);
+      });
       setTimeout(() => res(this.ready), 15000);
       v.load();
     });
