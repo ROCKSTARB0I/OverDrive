@@ -20,7 +20,12 @@ function unlock(buf, id) {
   for (let i = w.length << 2; i < out.length; i++) out[i] ^= kb[i & 65535];
   return out;
 }
-const songPath = id => `media/music/${id}.odm`;
+// Where the songs come from: the .exe and the local server have them right next to the game. The GitHub copy has none,
+// so it streams them (still locked) from the OVERDRIVE online server named in index.html.
+const SERVER = ((window.overdriveDesktop && window.overdriveDesktop.server) || document.querySelector('meta[name="overdrive-server"]')?.content || '').trim().replace(/\/$/, '');
+let songBase = 'media/music/';
+const songPath = id => `${songBase}${id}.odm`;
+const songThere = async id => (await fetch(songPath(id), { method: 'HEAD', cache: 'no-store' }).catch(() => null))?.ok;
 
 export class Radio {
   constructor(sound) {
@@ -61,7 +66,8 @@ export class Radio {
       const j = await r.json();
       // builds without the songs (the GitHub copy) simply have no music stations
       const first = (j.stations || []).flatMap(s => s.tracks || []).find(t => t.song);
-      const haveSongs = first ? (await fetch(songPath(first.song), { method: 'HEAD' }).catch(() => null))?.ok : false;
+      let haveSongs = first ? await songThere(first.song) : false;
+      if (first && !haveSongs && SERVER) { songBase = SERVER + '/media/music/'; haveSongs = await songThere(first.song); }
       for (const s of j.stations || []) s.tracks = (s.tracks || []).filter(t => t.song ? haveSongs : t.file);
       this.stations = (j.stations || []).filter(s => s.tracks && s.tracks.length);
       for (const st of this.stations) this.schedule(st);

@@ -743,6 +743,20 @@ G.snap = async (name = 'snap', q = .85) => {
 G.skipToMenu = () => { G.skipped = true; sound.init(); $('gate').classList.add('gone'); $('intro').classList.add('hidden'); radio.ensureGraph(); radio.randomStation(); enterMenu(); };
 G.goPlace = p => goPlace(p);
 G.drive = () => drive();
+// key art / store shots: pose the camera yourself and render at any size
+G.art = {
+  THREE, renderer, composer, final,
+  get camera() { return camera; }, get race() { return race; }, get player() { return player; }, get playerCar() { return playerCar; }, get track() { return track; },
+  get fx() { return fx; }, rebuild: () => rebuildPlayerLook(), begin: async (mode = 'time', trackIdx = 0) => { await loadTrack(trackIdx); $('menuui').classList.add('hidden'); beginRace(mode); },
+  render(w, h) {
+    const pr = renderer.getPixelRatio(); renderer.setPixelRatio(1);
+    renderer.setSize(w, h, false); composer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
+    composer.render();
+    const c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(renderer.domElement, 0, 0);
+    renderer.setPixelRatio(pr); renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+    return c;
+  },
+};
 G.setCam = m => { camMode = m; };
 // multiplayer race feed: send ours ~15 times a second, ease the others toward theirs
 let netT = 0;
