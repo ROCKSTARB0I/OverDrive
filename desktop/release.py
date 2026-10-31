@@ -12,6 +12,8 @@ import hashlib, json, os
 GAME = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKIP_DIRS = {'server', 'desktop', 'tools', 'node_modules'}
 SKIP_FILES = {'version.json', 'Dockerfile'}
+# too big for GitHub's web uploader: the .exe keeps its own copy and the browser copy streams it from the server
+NOT_ON_GITHUB = {'media/redline.mp4'}
 
 files = {}
 for root, dirs, names in os.walk(GAME):
@@ -20,6 +22,7 @@ for root, dirs, names in os.walk(GAME):
     for n in sorted(names):
         if n.startswith('.') or n in SKIP_FILES or n.lower().endswith(('.mp3', '.odm', '.wav', '.flac')): continue
         rel = os.path.normpath(os.path.join(rel_root, n)).replace(os.sep, '/')
+        if rel in NOT_ON_GITHUB: continue
         with open(os.path.join(root, n), 'rb') as f: files[rel] = hashlib.sha1(f.read()).hexdigest()
 
 path = os.path.join(GAME, 'version.json')

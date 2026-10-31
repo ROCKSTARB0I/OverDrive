@@ -78,8 +78,10 @@ const updatingPage = `data:text/html,${encodeURIComponent(`<!doctype html><body 
 app.whenReady().then(async () => {
   protocol.handle('app', req => {
     const rel = decodeURIComponent(new URL(req.url).pathname).replace(/^\/+/, '') || 'index.html';
-    // locked songs only ever ship inside the .exe; everything else comes from the current game version
-    const file = inside(rel.startsWith('media/music/') ? BUNDLED : ROOT, rel);
+    // locked songs (and anything else too big for GitHub, like the intro video) only ship inside the .exe;
+    // everything else comes from the current game version
+    let file = inside(rel.startsWith('media/music/') ? BUNDLED : ROOT, rel);
+    if (file && !fs.existsSync(file)) file = inside(BUNDLED, rel);
     if (!file) return new Response('Forbidden', { status: 403 });
     return net.fetch(pathToFileURL(file).toString());
   });
