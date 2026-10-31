@@ -26,7 +26,8 @@ DB_PATH = os.path.join(DATA, 'users.json')
 GAME = os.path.abspath(os.path.join(HERE, '..'))          # the game folder (the repo root); served at / and /overdrive/
 # locked radio songs live outside the game folder so they never end up on GitHub (see desktop/lock-music.py).
 # A hosted server has no songs, which is fine: the radio just goes quiet for web players.
-MUSIC = os.path.join(os.environ.get('OVERDRIVE_MUSIC') or os.path.join(os.path.dirname(GAME), 'overdrive-music'), 'locked')
+# On a hosting service, put the locked .odm files in <OVERDRIVE_DATA>/music so browser players get the radio too.
+MUSIC = os.environ.get('OVERDRIVE_MUSIC') or next((d for d in (os.path.join(os.path.dirname(GAME), 'overdrive-music', 'locked'), os.path.join(DATA, 'music')) if os.path.isdir(d)), os.path.join(DATA, 'music'))
 mimetypes.add_type('text/javascript', '.js'); mimetypes.add_type('audio/mp4', '.m4a')
 NAME_RE = re.compile(r'^[A-Za-z0-9_]{3,16}$')
 BANNED = ('nigg', 'fag', 'retard', 'rape', 'nazi', 'hitler', 'kike', 'chink', 'spic')
