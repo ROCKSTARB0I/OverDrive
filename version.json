@@ -1,5 +1,5 @@
 {
- "version": 2,
+ "version": 3,
  "files": {
   "index.html": "63c42b5ba5e58517393e67839543c0b900178e01",
   "style.css": "90e55fa06edb1824512725b7eaac6cdad6250d31",
@@ -28,7 +28,7 @@
   "src/radio.js": "0cc7fa7624853620e6c125419caa77f9f4d0f8e5",
   "src/rivals.js": "e38f42db2c73463cf4400295892107408757487d",
   "src/terms.js": "a096d97d9c01697460f6c06f09d4b3e919b8ad0b",
-  "src/tex.js": "09e5c726affbd772bf3d4f7ea18250cb0c576b3f",
+  "src/tex.js": "960ea837677a36445575e7df0e285ff7f2a2ccf7",
   "src/track.js": "0be0ff2f92e79efa1ba805ab768b57e57ba88b49",
   "src/vehicle.js": "98039bb1307703d66969b2d730b8146fd0ce31a7",
   "src/world.js": "788e8cfd77cb154da1d97cfe1f8646cac25e5fad",
