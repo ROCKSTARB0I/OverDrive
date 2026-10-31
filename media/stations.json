@@ -1,0 +1,106 @@
+{
+ "stations": [
+  {
+   "name": "PULSE",
+   "freq": "98.7",
+   "tag": "Electronic & French house",
+   "color": "#29e0ff",
+   "tracks": [
+    {
+     "title": "Dust (Midnight Club LA Version)",
+     "artist": "Alex Gopher",
+     "dur": 230.77,
+     "song": "f209a6770065"
+    },
+    {
+     "title": "Teachers",
+     "artist": "Daft Punk",
+     "dur": 173.45,
+     "song": "ea3a4e885d42"
+    },
+    {
+     "title": "Score (Short Edit)",
+     "artist": "Slyder",
+     "dur": 246.31,
+     "song": "b81e0b072ff0"
+    }
+   ],
+   "idents": [
+    {
+     "file": "idents/pulse1.m4a",
+     "dur": 5.87
+    },
+    {
+     "file": "idents/pulse2.m4a",
+     "dur": 2.09
+    }
+   ]
+  },
+  {
+   "name": "STARDUST",
+   "freq": "104.3",
+   "tag": "Disco, funk & city pop",
+   "color": "#ff2e88",
+   "tracks": [
+    {
+     "title": "Night On Disco Mountain",
+     "artist": "David Shire",
+     "dur": 312.37,
+     "song": "8ce7671df935"
+    },
+    {
+     "title": "Evil Woman",
+     "artist": "Electric Light Orchestra",
+     "dur": 251.71,
+     "song": "b145a21a6774"
+    },
+    {
+     "title": "Get Wild",
+     "artist": "TM Network",
+     "dur": 182.36,
+     "song": "155a3c6beed3"
+    }
+   ],
+   "idents": [
+    {
+     "file": "idents/star1.m4a",
+     "dur": 4.59
+    },
+    {
+     "file": "idents/star2.m4a",
+     "dur": 3.25
+    }
+   ]
+  },
+  {
+   "name": "KRANK",
+   "freq": "92.1",
+   "tag": "Hip-hop & alternative",
+   "color": "#ffcc33",
+   "tracks": [
+    {
+     "title": "Bagpipes From Baghdad",
+     "artist": "Eminem",
+     "dur": 283.09,
+     "song": "1514e44b517c"
+    },
+    {
+     "title": "Mr. Nice Guy",
+     "artist": "Mr. Bungle",
+     "dur": 517.46,
+     "song": "bbb82a557593"
+    }
+   ],
+   "idents": [
+    {
+     "file": "idents/krank1.m4a",
+     "dur": 3.49
+    },
+    {
+     "file": "idents/krank2.m4a",
+     "dur": 3.28
+    }
+   ]
+  }
+ ]
+}
