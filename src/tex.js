@@ -52,13 +52,14 @@ export function roadTextures(halfW, shoulder) {
     const v = 120 + R() * 60 - wear * 50;
     d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255;
   });
-  // standing water: glossy puddles that pick up the city reflections (darker albedo too)
-  for (let k = 0; k < 26; k++) {
-    const px = R() * W, py = R() * H, r = 20 + R() * 70;
+  // damp patches: a touch darker and glossier so they catch the lamps. Kept subtle: near-black mirror puddles
+  // read as holes in the road at night (there's nothing for them to reflect), and cars looked like they sank in.
+  for (let k = 0; k < 14; k++) {
+    const px = R() * W, py = R() * H, r = 14 + R() * 34;
     const sx = 1 + R() * 1.5;
-    for (const [ctx, col] of [[rx, 'rgba(18,18,18,'], [x, 'rgba(6,7,10,']]) {
+    for (const [ctx, col] of [[rx, 'rgba(62,62,62,'], [x, 'rgba(14,15,19,']]) {
       const g = ctx.createRadialGradient(px, py, 0, px, py, r);
-      g.addColorStop(0, col + (ctx === rx ? '.95)' : '.5)')); g.addColorStop(.7, col + (ctx === rx ? '.7)' : '.3)')); g.addColorStop(1, col + '0)');
+      g.addColorStop(0, col + (ctx === rx ? '.8)' : '.22)')); g.addColorStop(.7, col + (ctx === rx ? '.5)' : '.12)')); g.addColorStop(1, col + '0)');
       ctx.save(); ctx.translate(px, py); ctx.scale(sx, 1); ctx.translate(-px, -py);
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, r, 0, 7); ctx.fill(); ctx.restore();
     }
