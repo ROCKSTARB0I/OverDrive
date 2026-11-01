@@ -270,8 +270,8 @@ export function buildCockpit() {
 
   // dim cabin fill and gauge spill
   const fill = new THREE.PointLight(0xffc89a, .3, 2.2, 1.5); fill.position.set(0, 1.05, -.2); g.add(fill);
-  const spill = new THREE.PointLight(0xff8a3a, .06, 1.0, 2); spill.position.set(.37, .95, .05); g.add(spill);
-  const crt = new THREE.PointLight(0x7dffb0, .04, 1.0, 2); crt.position.set(-.05, .98, -.15); g.add(crt);
+  const spill = new THREE.PointLight(0xff8a3a, .06, 1.0, 2); spill.position.set(.37, .95, .05); spill.userData.extra = true; g.add(spill);
+  const crt = new THREE.PointLight(0x7dffb0, .04, 1.0, 2); crt.position.set(-.05, .98, -.15); crt.userData.extra = true; g.add(crt);
 
   // the cabin shell shades itself: lamps above the car mustn't flood the console through the roof
   g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });

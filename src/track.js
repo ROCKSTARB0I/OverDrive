@@ -25,10 +25,8 @@ export function buildTrack(def, envMap) {
   const ds = length / N;
   const P = curve.getSpacedPoints(N).slice(0, N);
   const T = [], R = [], U = [], K = [];
-  for (let i = 0; i < N; i++) {
-    const t = P[(i + 1) % N].clone().sub(P[(i - 1 + N) % N]).normalize();
-    T.push(t);
-  }
+  const tangents = () => { for (let i = 0; i < N; i++) T[i] = P[(i + 1) % N].clone().sub(P[(i - 1 + N) % N]).normalize(); };
+  tangents();
   // signed curvature in plan view (+ = turning left)
   for (let i = 0; i < N; i++) {
     const a = T[i], b = T[(i + 1) % N];
@@ -37,12 +35,24 @@ export function buildTrack(def, envMap) {
   // smooth curvature, then bank into the corner
   const Ks = K.map((_, i) => { let s = 0; for (let k = -6; k <= 6; k++) s += K[(i + k + N) % N]; return s / 13; });
   const up0 = new THREE.Vector3(0, 1, 0);
-  for (let i = 0; i < N; i++) {
-    const r = new THREE.Vector3().crossVectors(T[i], up0).normalize();
-    const bank = THREE.MathUtils.clamp(Ks[i] * 9, -.09, .09);
-    r.applyAxisAngle(T[i], bank);
-    const u = new THREE.Vector3().crossVectors(r, T[i]).normalize();
-    R.push(r); U.push(u);
+  const frame = () => {
+    for (let i = 0; i < N; i++) {
+      const r = new THREE.Vector3().crossVectors(T[i], up0).normalize();
+      const bank = THREE.MathUtils.clamp(Ks[i] * 9, -.09, .09);
+      r.applyAxisAngle(T[i], bank);
+      R[i] = r; U[i] = new THREE.Vector3().crossVectors(r, T[i]).normalize();
+    }
+  };
+  frame();
+  // keep every bit of the road (banked edges, and dips where the spline sags) above the city's ground sheet (y -.05),
+  // or the ground pokes up through the asphalt and the car looks like it sinks into it. Max-filter then average the
+  // lift so it never drops below what a sample needs and rolls in too gently to feel.
+  const EDGE = HALF_W + SHOULDER, FLOOR = .04, need = new Float32Array(N), wide = new Float32Array(N);
+  for (let i = 0; i < N; i++) need[i] = Math.max(0, FLOOR - (P[i].y - Math.abs(R[i].y) * EDGE));
+  for (let i = 0; i < N; i++) { let m = 0; for (let k = -40; k <= 40; k++) m = Math.max(m, need[(i + k + N) % N]); wide[i] = m; }
+  if (wide.some(x => x > 0)) {
+    for (let i = 0; i < N; i++) { let s = 0; for (let k = -20; k <= 20; k++) s += wide[(i + k + N) % N]; P[i].y += s / 41; }
+    tangents(); frame();
   }
   const inTunnel = new Uint8Array(N);
   for (const [a, b] of def.tunnels || []) for (let i = Math.floor(a * N); i < b * N; i++) inTunnel[i] = 1;

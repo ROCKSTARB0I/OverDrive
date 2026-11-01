@@ -94,7 +94,7 @@ export function buildHub(env) {
   key.position.set(2.5, 7, -3); key.target.position.set(0, 0, 0); key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -.0003; key.shadow.normalBias = .02;
   scene.add(key, key.target);
-  for (const v of lampHeads.slice(2)) { const l = new THREE.PointLight(0xffa255, 90, 26, 1.6); l.position.copy(v); scene.add(l); }
+  for (const v of lampHeads.slice(2)) { const l = new THREE.PointLight(0xffa255, 90, 26, 1.6); l.position.copy(v); l.userData.extra = true; scene.add(l); }   // extra: off on LOW graphics
 
   // ---------------- garage place: work-light bay beside the car
   const shop = new THREE.Group(); shop.position.set(-6.5, 0, 2.5); scene.add(shop);

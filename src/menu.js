@@ -13,7 +13,7 @@ export const STRIPES = [['NONE', null], ['WHITE', 0xf2efe6], ['GOLD', 0xd4a017],
 const DIFF = ['STRADA', 'SPORT', 'CORSA'];
 const CAMS = ['CHASE', 'FAR CHASE', 'BONNET', 'COCKPIT'];
 
-const DEFAULTS = { laps: 3, difficulty: 1, gearbox: 'auto', camera: 0, sfx: .9, music: .7, track: 0, paint: 0, wheels: 1, stripe: 0, mode: 'race', assist: 1 };
+const DEFAULTS = { quality: 'auto', laps: 3, difficulty: 1, gearbox: 'auto', camera: 0, sfx: .9, music: .7, track: 0, paint: 0, wheels: 1, stripe: 0, mode: 'race', assist: 1 };
 export function loadSettings() {
   try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem('overdrive_settings') || '{}') }; } catch (e) { return { ...DEFAULTS }; }
 }
@@ -83,7 +83,7 @@ export class Menu {
     const key = h ? h.id + (h.spot ? h.spot.key : '') : null;
     if (key !== this.hoverKey) { this.hoverKey = key; if (this.page) this.draw(); }
     this.hover = h;
-    document.body.style.cursor = h ? 'pointer' : 'default';
+    document.body.style.cursor = h ? 'var(--cur-hand)' : '';
     if (h && h.tip && this.mouseScreen) {
       this.tip.textContent = h.tip; this.tip.classList.add('on');
       this.tip.style.left = (this.mouseScreen[0] + 16) + 'px'; this.tip.style.top = (this.mouseScreen[1] + 14) + 'px';
@@ -339,6 +339,8 @@ export class Menu {
         ['SFX VOLUME', `${Math.round(S.sfx * 100)}%`, () => { S.sfx = S.sfx >= 1 ? 0 : Math.round((S.sfx + .1) * 10) / 10; this.sound.setVolumes(S.sfx, S.music); }],
         ['MUSIC VOLUME', `${Math.round(S.music * 100)}%`, () => { S.music = S.music >= 1 ? 0 : Math.round((S.music + .1) * 10) / 10; this.sound.setVolumes(S.sfx, S.music); }],
         ['DIFFICULTY', DIFF[S.difficulty], () => { S.difficulty = (S.difficulty + 1) % 3; this.cockpit.dial.target = (S.difficulty - 1) * -1; }],
+        ['GRAPHICS', !S.quality || S.quality === 'auto' ? `AUTO (${(this.gfxAuto || 'high').toUpperCase()})` : S.quality.toUpperCase(),
+          () => { const L = ['auto', 'high', 'medium', 'low']; S.quality = L[(L.indexOf(S.quality || 'auto') + 1) % L.length]; this.onQuality && this.onQuality(); }],
       ];
       rows.forEach(([k, v, act], i) => {
         const py = 150 + i * 70, key = 'r' + i, on = isHot(key);

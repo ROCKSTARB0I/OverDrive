@@ -7,7 +7,7 @@
    "color": "#29e0ff",
    "tracks": [
     {
-     "title": "Dust (Midnight Club LA Version)",
+     "title": "Dust",
      "artist": "Alex Gopher",
      "dur": 230.77,
      "song": "f209a6770065"
@@ -89,6 +89,12 @@
      "artist": "Mr. Bungle",
      "dur": 517.46,
      "song": "bbb82a557593"
+    },
+    {
+     "title": "C.R.E.A.M. (Cash Rules Everything Around Me)",
+     "artist": "Wu-Tang Clan",
+     "dur": 253.65,
+     "song": "b34f08b7a385"
     }
    ],
    "idents": [

@@ -81,6 +81,12 @@ export function buildLights(scene, tr) {
   for (let k = 0; k < 6; k++) { const l = new THREE.PointLight(0xffa255, 0, 34, 1.6); scene.add(l); pool.push(l); }
   const dir = new THREE.Vector3(-.45, .8, -.35).normalize();
   return {
+    moon, pool,
+    // graphics quality: how many street-lamp lights follow the player, and the moon's shadow size
+    setQuality(q) {
+      pool.forEach((l, k) => { l.visible = k < q.lamps; });
+      if (moon.shadow.mapSize.x !== q.shadowSize) { moon.shadow.mapSize.set(q.shadowSize, q.shadowSize); if (moon.shadow.map) { moon.shadow.map.dispose(); moon.shadow.map = null; } }
+    },
     update(focus, trackNow = tr) {
       moon.position.copy(focus).addScaledVector(dir, 80);
       moon.target.position.copy(focus);

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OVERDRIVE</title>
+<link rel="stylesheet" href="../vendor/fonts/fonts.css">
+<link rel="stylesheet" href="launcher.css">
+</head>
+<body>
+<!-- OVERDRIVE launch menu: the first thing the PC version shows. Art, rain, light streaks, then PLAY. -->
+<div id="scene">
+  <div id="hero"><img src="hero.jpg" alt=""></div>
+  <div id="flare"></div>
+  <canvas id="fx"></canvas>
+  <div class="shade left"></div><div class="shade bottom"></div><div class="shade vignette"></div>
+  <div id="scan"></div><canvas id="grain"></canvas>
+  <div id="streak"></div>
+</div>
+
+<header id="top">
+  <div id="logo"><img src="logo.png" alt="OVERDRIVE"><i class="shine"></i></div>
+</header>
+
+<nav id="menu" aria-label="Main menu">
+  <div id="sel"></div>
+  <button data-act="play" class="big"><span>PLAY</span><em>HIT THE STREETS</em></button>
+  <button data-act="settings"><span>SETTINGS</span></button>
+  <button data-act="credits"><span>CREDITS</span></button>
+  <button data-act="quit"><span>QUIT</span></button>
+</nav>
+
+<div id="corner">RUFF DOGS STUDIOS<b id="ver"></b></div>
+
+<footer id="status">
+  <div class="row"><i id="dot"></i><span id="stxt">STARTING UP</span></div>
+  <div id="bar"><i></i></div>
+</footer>
+
+<section class="panel" id="settings" aria-hidden="true">
+  <h2>SETTINGS</h2>
+  <label class="opt"><span>START IN FULLSCREEN</span><input type="checkbox" id="optfs"><i></i></label>
+  <p class="hint">F11 or ALT + ENTER switches fullscreen any time.</p>
+  <button class="back" data-act="back">BACK</button>
+</section>
+
+<section class="panel" id="credits" aria-hidden="true">
+  <h2>CREDITS</h2>
+  <div class="studio"><img src="../media/ruff-dogs-emblem.jpg" alt=""><div><b>A RUFF DOGS STUDIOS GAME</b><span>Created by R0CK5TARB0I</span></div></div>
+  <h3>ON THE RADIO</h3>
+  <div id="songs"></div>
+  <h3>BUILT WITH</h3>
+  <p>three.js &middot; our own PC launcher, written from scratch in C</p>
+  <button class="back" data-act="back">BACK</button>
+</section>
+
+<div id="black"></div>
+<script type="module" src="launcher.js"></script>
+</body>
+</html>

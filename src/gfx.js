@@ -57,6 +57,25 @@ const FinalShader = {
     }`,
 };
 
+// Graphics quality. AUTO picks a level from the GPU's name; on every level the render resolution then slides
+// between scale[0] and scale[1] to hold the frame rate (dynamic resolution).
+export const QUALITY = {
+  high: { scale: [.7, 1], maxDpr: 1.75, samples: 4, shadows: 'soft', shadowSize: 2048, bloom: 1, lamps: 6, extra: true },
+  medium: { scale: [.6, 1], maxDpr: 1.25, samples: 2, shadows: 'hard', shadowSize: 1024, bloom: .5, lamps: 3, extra: true },
+  low: { scale: [.5, .8], maxDpr: 1, samples: 0, shadows: 'off', shadowSize: 1024, bloom: .5, lamps: 2, extra: false },
+};
+export function gpuName(renderer) {
+  const gl = renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info');
+  return String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
+}
+export function autoQuality(name) {
+  if (/SwiftShader|llvmpipe|Basic Render/i.test(name)) return 'low';
+  if (/Intel/i.test(name) && !/Arc/i.test(name)) return /Iris\(R\) Xe|Iris Xe/i.test(name) ? 'medium' : 'low';   // HD / UHD / older Iris = low
+  if (/Radeon\(TM\) Graphics|Radeon Graphics|Vega \d+|Radeon R\d/i.test(name)) return 'medium';                  // AMD integrated
+  if (/GeForce (\d{3}M\b|MX ?\d{3}|GT \d{3})/i.test(name)) return 'medium';                                          // older mobile / entry NVIDIA
+  return 'high';
+}
+
 export function createGfx(container) {
   const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
@@ -87,8 +106,16 @@ export function createGfx(container) {
   const final = new ShaderPass(FinalShader);
   composer.addPass(final);
 
+  // bloom can run at a fraction of the screen resolution (it's a blur, so it barely shows)
+  const bloomSetSize = bloom.setSize.bind(bloom);
+  let q = QUALITY.high, scale = 1, slow = 0, quick = 0, ema = 1 / 60, nextCheck = 0;
+  bloom.setSize = (w, h) => bloomSetSize(Math.max(1, Math.round(w * q.bloom)), Math.max(1, Math.round(h * q.bloom)));
+  const pixelRatio = () => Math.min(devicePixelRatio, q.maxDpr) * scale;
+
   function resize() {
     const w = innerWidth, h = innerHeight;
+    renderer.setPixelRatio(pixelRatio());
+    composer.setPixelRatio(pixelRatio());
     renderer.setSize(w, h);
     composer.setSize(w, h);
     camera.aspect = w / h;
@@ -98,7 +125,38 @@ export function createGfx(container) {
   addEventListener('resize', resize);
   resize();
 
-  return { renderer, scene, camera, composer, bloom, final, resize };
+  // switch quality level; scenes = every scene, so lights and materials can follow
+  function setQuality(name, scenes = []) {
+    q = QUALITY[name] || QUALITY.high;
+    scale = q.scale[1];
+    const shadowsOn = q.shadows !== 'off', type = q.shadows === 'soft' ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+    const changed = renderer.shadowMap.enabled !== shadowsOn || renderer.shadowMap.type !== type;
+    renderer.shadowMap.enabled = shadowsOn; renderer.shadowMap.type = type;
+    for (const t of [composer.renderTarget1, composer.renderTarget2]) if (t.samples !== q.samples) { t.samples = q.samples; t.dispose(); }
+    for (const sc of scenes) sc && sc.traverse(o => {
+      if (o.isLight && o.userData.extra) o.visible = q.extra;
+      if (o.isLight && o.shadow && o.castShadow && o.shadow.mapSize.x !== q.shadowSize) {
+        o.shadow.mapSize.set(q.shadowSize, q.shadowSize); if (o.shadow.map) { o.shadow.map.dispose(); o.shadow.map = null; }
+      }
+      if (changed && o.material) for (const m of [].concat(o.material)) m.needsUpdate = true;   // rebuild shaders for the new shadow mode
+    });
+    resize();
+  }
+  // dynamic resolution: drop the render scale when frames take too long, creep back up when there's room
+  function perf(dt, now) {
+    if (dt <= 0 || dt > .1) return;                   // hidden tab or a hitch: ignore
+    ema += (dt - ema) * .08;
+    if (now < nextCheck) return;
+    nextCheck = now + 1;
+    if (ema > 1 / 45) { slow++; quick = 0; } else if (ema < 1 / 57) { quick++; slow = 0; } else { slow = quick = 0; }
+    const was = scale;
+    if (slow >= 2) { scale = Math.max(q.scale[0], scale - .1); slow = 0; }
+    else if (quick >= 4) { scale = Math.min(q.scale[1], scale + .05); quick = 0; }
+    if (scale !== was) resize();
+  }
+  const stats = () => ({ fps: Math.round(1 / ema), scale, px: [Math.round(innerWidth * pixelRatio()), Math.round(innerHeight * pixelRatio())] });
+
+  return { renderer, scene, camera, composer, bloom, final, resize, setQuality, perf, stats };
 }
 
 // Night-city environment map: gradient sky plus strips of sodium, neon and white light so paint and glass have something to reflect.

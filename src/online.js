@@ -5,13 +5,24 @@ import * as THREE from 'three';
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 // Where the account server lives. Empty = the same server as the game (local play).
-// For a static host like GitHub Pages, set <meta name="overdrive-server" content="https://your-server"> in index.html.
-// The desktop (.exe) build passes its server address in through window.overdriveDesktop.
+// A fixed address can come from the .exe's config (window.overdriveDesktop.server) or <meta name="overdrive-server">.
+// Otherwise the .exe and the GitHub copy look up the current address in server.json on GitHub, which Nathan's
+// server manager keeps up to date whenever it opens the server's public tunnel (the address changes on restart).
 const DESKTOP = window.overdriveDesktop || null;
-const API = ((DESKTOP && DESKTOP.server) || document.querySelector('meta[name="overdrive-server"]')?.content || '').trim().replace(/\/$/, '');
+const FIXED = ((DESKTOP && DESKTOP.server) || document.querySelector('meta[name="overdrive-server"]')?.content || '').trim().replace(/\/$/, '');
+const LOOKUP = !FIXED && (DESKTOP || /\.github\.io$/.test(location.hostname)) ? 'https://raw.githubusercontent.com/ROCKSTARB0I/OverDrive/main/server.json' : '';
 export const PLATFORM = DESKTOP ? 'PC' : 'WEB';
-const WS_URL = (API ? API.replace(/^http/, 'ws') : `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`) + '/ws';
+let API = FIXED, lookedUp = 0, lookup = null;
+const wsUrl = () => (API ? API.replace(/^http/, 'ws') : `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`) + '/ws';
 const media = u => u && u.startsWith('/') ? API + u : u;   // avatars are served by the account server
+// find the server's current address (again, at most every 20 s, when it stops answering)
+function findServer(again) {
+  if (!LOOKUP) return Promise.resolve();
+  if (lookup && !(again && Date.now() - lookedUp > 20000)) return lookup;
+  lookedUp = Date.now();
+  return lookup = fetch(LOOKUP + '?t=' + Date.now(), { cache: 'no-store' }).then(r => r.json())
+    .then(j => { const s = String(j.server || '').trim().replace(/\/$/, ''); if (/^https?:\/\//.test(s)) API = s; }).catch(() => { });
+}
 const TRACK_NAMES = ['NEON DOWNTOWN', 'HARBOR HIGHWAY'];
 const ICE = [{ urls: 'stun:stun.l.google.com:19302' }];
 
@@ -37,7 +48,10 @@ export class Online {
 
   // ------------------------------------------------------------------ http
   async api(path, method = 'GET', body) {
-    const r = await fetch(API + path, { method, headers: { 'Content-Type': 'application/json', ...(this.token ? { Authorization: 'Bearer ' + this.token } : {}) }, body: body ? JSON.stringify(body) : undefined });
+    await findServer();
+    if (LOOKUP && !API) { await findServer(true); if (!API) throw new Error('Server unavailable'); }
+    const r = await fetch(API + path, { method, headers: { 'Content-Type': 'application/json', ...(this.token ? { Authorization: 'Bearer ' + this.token } : {}) }, body: body ? JSON.stringify(body) : undefined })
+      .catch(e => { findServer(true); throw new Error('Server unavailable'); });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) { const e = new Error(j.error || 'Server unavailable'); e.status = r.status; throw e; }
     return j;
@@ -79,9 +93,11 @@ export class Online {
   }
 
   // ------------------------------------------------------------------ socket
-  connect() {
+  async connect() {
     if (this.ws && this.ws.readyState < 2) return;
-    const ws = new WebSocket(`${WS_URL}?token=${this.token}`);
+    await findServer();
+    if (this.ws && this.ws.readyState < 2) return;
+    const ws = new WebSocket(`${wsUrl()}?token=${this.token}`);
     this.ws = ws; this.kicked = false;
     ws.onopen = () => {
       this.hello();
@@ -91,7 +107,7 @@ export class Online {
     ws.onmessage = e => { try { this.onMsg(JSON.parse(e.data)); } catch (err) { console.warn(err); } };
     ws.onclose = () => {
       clearInterval(this.pingT);
-      if (this.token && this.ws === ws && !this.kicked) setTimeout(() => this.connect(), 2500);
+      if (this.token && this.ws === ws && !this.kicked) { findServer(true); setTimeout(() => this.connect(), 2500); }
     };
   }
   hello() { this.send({ t: 'hello', platform: PLATFORM, crossplay: this.crossplay }); }

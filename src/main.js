@@ -1,7 +1,7 @@
 // OVERDRIVE: boot -> REDLINE studio intro -> title card -> rooftop menu (cabin + places) -> drive (radio fades, new area)
 // -> race -> results -> back to the roof. Cameras, input and the frame loop live here.
 import * as THREE from 'three';
-import { createGfx, nightEnvironment, skyDome } from './gfx.js';
+import { createGfx, nightEnvironment, skyDome, gpuName, autoQuality, QUALITY } from './gfx.js';
 import { TRACKS, buildTrack, pointAt } from './track.js';
 import { buildWorld, buildLights } from './world.js';
 import { makeCar } from './carmodel.js';
@@ -75,6 +75,8 @@ async function boot() {
   menu.onLook = () => rebuildPlayerLook();
   menu.onButton = id => onConsoleButton(id);
   G.cockpit = cockpit; G.menu = menu; G.hub = hub;
+  menu.onQuality = () => applyQuality();
+  applyQuality();
   await step(72);
   await radio.load();
   await step(80);
@@ -122,10 +124,26 @@ async function loadTrack(i) {
   track = buildTrack(TRACKS[i], env);
   raceScene.add(track.group);
   world = buildWorld(raceScene, track);
-  if (!lights) lights = buildLights(raceScene, track);
+  if (!lights) { lights = buildLights(raceScene, track); if (G.quality) lights.setQuality(QUALITY[G.quality.name]); }
   if (player) player.track = track;
   G.track = track;
 }
+
+// graphics quality: AUTO picks from the GPU (an old Intel laptop gets LOW), or the player's choice in SETUP
+function applyQuality() {
+  const gpu = gpuName(renderer), auto = autoQuality(gpu);
+  const name = QUALITY[settings.quality] ? settings.quality : auto;
+  gfx.setQuality(name, [raceScene, hub.scene, menu.gScene, cockpit.group]);
+  if (lights) lights.setQuality(QUALITY[name]);
+  G.quality = { name, auto, gpu };
+  menu.gfxAuto = auto;
+  saveSettings(settings);
+}
+// F3: frame rate, render resolution and GPU, so slow PCs can be diagnosed
+const fpsEl = document.createElement('div');
+fpsEl.style.cssText = 'position:fixed;left:8px;top:8px;z-index:99;font:12px/1.4 monospace;color:#7dffb0;background:rgba(0,0,0,.6);padding:6px 8px;pointer-events:none;display:none;white-space:pre';
+document.body.appendChild(fpsEl);
+addEventListener('keydown', e => { if (e.code === 'F3') { e.preventDefault(); fpsEl.style.display = fpsEl.style.display === 'none' ? 'block' : 'none'; } });
 
 function rebuildPlayerLook() {
   const old = playerCar;
@@ -304,7 +322,7 @@ async function drive(mp = null) {
   menu.starting = true;
   $('place').classList.remove('on'); $('back').classList.add('hidden');
   if (place !== 'cabin') await goPlace('cabin');
-  menu.enabled = false; menu.tip.classList.remove('on'); document.body.style.cursor = 'default';
+  menu.enabled = false; menu.tip.classList.remove('on'); document.body.style.cursor = '';
   $('menuhint').style.display = 'none';
   cockpit.key.target = 1.25; sound.click(.4, 5200);
   sound.voice = career.car.sound;
@@ -621,8 +639,13 @@ function drawCluster(rpm, kmh, gear, boost, lit) {
 let last = performance.now(), clusterT = 0, popT = 0;
 function frame(now) {
   requestAnimationFrame(frame);
-  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  const raw = (now - last) / 1000, dt = Math.min(.05, raw); last = now;
   if (!hub || !cockpit || G.state === 'boot' || G.state === 'gate' || G.state === 'intro') return;
+  gfx.perf(raw, now / 1000);
+  if (fpsEl.style.display !== 'none' && G.quality) {
+    const s = gfx.stats();
+    fpsEl.textContent = `${s.fps} FPS  ·  ${G.quality.name.toUpperCase()}${settings.quality === 'auto' || !QUALITY[settings.quality] ? ' (AUTO)' : ''}  ·  ${s.px[0]}x${s.px[1]} (${Math.round(s.scale * 100)}%)\n${G.quality.gpu}`;
+  }
   try { tick(dt); } catch (err) { console.error(err); }
 }
 

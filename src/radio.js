@@ -9,7 +9,7 @@ function hashStr(t) { let h = 2166136261; for (const c of t) { h ^= c.charCodeAt
 // Songs ship locked (media/music/<id>.odm, made by desktop/lock-music.py) so they can't be copied out as mp3s.
 // One song is unlocked at a time, in memory, right before it plays: a few milliseconds, no up-front loading.
 const LOCK_SECRET = 'rd-overdrive-1986';
-function unlock(buf, id) {
+export function unlock(buf, id) {
   let x = hashStr(LOCK_SECRET + id) || 1;
   const key = new Uint32Array(16384);
   for (let i = 0; i < key.length; i++) { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; key[i] = x >>> 0; }
