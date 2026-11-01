@@ -1,5 +1,5 @@
 {
- "version": 5,
+ "version": 6,
  "files": {
   "index.html": "63c42b5ba5e58517393e67839543c0b900178e01",
   "style.css": "fd48e49692f286cf85dd8ddd5b0808f824e5412c",
@@ -35,7 +35,7 @@
   "src/intro.js": "d17d46d12668072727fcae5ed219dd364c42b4af",
   "src/main.js": "992a8920397885064a4afb4e07ec3c2c0a2822e1",
   "src/menu.js": "7d4218ad8e68691d751b8789ae09c289627f5b24",
-  "src/online.js": "2691852ae9e14964177386dd3a93476a1235c8cb",
+  "src/online.js": "9c808277e203af7083b4ea6ff6198b916ad6df79",
   "src/race.js": "6b6a8b5ecb099a766215381cdcf4d05b61334a16",
   "src/radio.js": "ce3c4b7d8b4c1dd0ff5acc7421ad8261b130c030",
   "src/rivals.js": "e38f42db2c73463cf4400295892107408757487d",

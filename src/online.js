@@ -11,6 +11,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const DESKTOP = window.overdriveDesktop || null;
 const FIXED = ((DESKTOP && DESKTOP.server) || document.querySelector('meta[name="overdrive-server"]')?.content || '').trim().replace(/\/$/, '');
 const LOOKUP = !FIXED && (DESKTOP || /\.github\.io$/.test(location.hostname)) ? 'https://raw.githubusercontent.com/ROCKSTARB0I/OverDrive/main/server.json' : '';
+const LOOKUP_API = 'https://api.github.com/repos/ROCKSTARB0I/OverDrive/contents/server.json?ref=main';
 export const PLATFORM = DESKTOP ? 'PC' : 'WEB';
 let API = FIXED, lookedUp = 0, lookup = null;
 const wsUrl = () => (API ? API.replace(/^http/, 'ws') : `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`) + '/ws';
@@ -20,8 +21,11 @@ function findServer(again) {
   if (!LOOKUP) return Promise.resolve();
   if (lookup && !(again && Date.now() - lookedUp > 20000)) return lookup;
   lookedUp = Date.now();
-  return lookup = fetch(LOOKUP + '?t=' + Date.now(), { cache: 'no-store' }).then(r => r.json())
-    .then(j => { const s = String(j.server || '').trim().replace(/\/$/, ''); if (/^https?:\/\//.test(s)) API = s; }).catch(() => { });
+  // GitHub's API always has the newest copy; the raw file can lag a few minutes behind (CDN cache), so it's the backup
+  const use = j => { const s = String(j.server || '').trim().replace(/\/$/, ''); if (/^https?:\/\//.test(s)) { API = s; return true; } };
+  const get = (u, h) => fetch(u, { cache: 'no-store', headers: h }).then(r => r.ok ? r.json() : Promise.reject(r.status));
+  return lookup = get(LOOKUP_API, { Accept: 'application/vnd.github.raw+json' }).then(use)
+    .catch(() => get(LOOKUP + '?t=' + Date.now()).then(use)).catch(() => { });
 }
 const TRACK_NAMES = ['NEON DOWNTOWN', 'HARBOR HIGHWAY'];
 const ICE = [{ urls: 'stun:stun.l.google.com:19302' }];
