@@ -81,11 +81,14 @@ async function boot() {
   await radio.load();
   await step(80);
   await intro.prepare();
-  await step(92);
+  await step(88);
   parkInHub();
   useScene(hub.scene);
-  renderer.compile(hub.scene, camera);
-  renderer.compile(raceScene, camera);
+  // Build every shader now and WAIT for the GPU to finish. On Windows (Direct3D underneath) this can take many
+  // seconds on a laptop GPU; if it's still going when the intro starts, the video freezes while its sound runs on.
+  await Promise.race([Promise.all([renderer.compileAsync(hub.scene, camera), renderer.compileAsync(raceScene, camera)]), wait(25000)]);
+  await step(96);
+  composer.render();                       // first real frame: shadow maps and render targets get made here, not mid-intro
   await step(100);
   // no "press a key": the show starts by itself. Audio unlocks on the first interaction if the browser held it back.
   window.__unlockAudio = () => {

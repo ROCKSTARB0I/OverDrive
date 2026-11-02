@@ -7,11 +7,15 @@ export class Intro {
     this.ready = false;
   }
 
-  prepare() {
+  async prepare() {
+    const v = this.video;
+    // the .exe serves files through its own pack; pull the whole video into memory first so playback never waits on it
+    if (window.overdriveDesktop) {
+      try { const b = await (await fetch(v.getAttribute('src'))).blob(); if (b.size > 1e5) { v.src = this.blobUrl = URL.createObjectURL(b); } } catch (e) { }
+    }
     return new Promise(res => {
-      const v = this.video;
       const ok = () => { this.ready = true; res(true); };
-      if (v.readyState >= 3) return ok();
+      if (v.readyState >= 4) return ok();
       v.addEventListener('canplaythrough', ok, { once: true });
       // the GitHub copy doesn't carry the video (too big to upload there): stream it from the OVERDRIVE server instead
       const server = ((window.overdriveDesktop && window.overdriveDesktop.server) || document.querySelector('meta[name="overdrive-server"]')?.content || '').trim().replace(/\/$/, '');
@@ -40,7 +44,7 @@ export class Intro {
         const fade = () => { const k = Math.min(1, (performance.now() - t0) / 400); v.volume = v0 * (1 - k); if (k < 1) requestAnimationFrame(fade); else v.pause(); };
         fade();
         this.root.classList.add('gone');
-        setTimeout(() => { this.root.classList.add('hidden'); v.removeAttribute('src'); v.load(); }, 900);
+        setTimeout(() => { this.root.classList.add('hidden'); v.removeAttribute('src'); v.load(); if (this.blobUrl) URL.revokeObjectURL(this.blobUrl); }, 900);
         resolve();
       };
       v.addEventListener('ended', finish, { once: true });
