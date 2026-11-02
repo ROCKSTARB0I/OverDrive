@@ -248,7 +248,7 @@ static int url_to_rel(const WCHAR *uri, char *rel, int cap) {
 // ------------------------------------------------------------------------------------------------ auto-update
 static void post_update(int phase, int pct) { g_phase = phase; g_pct = pct; PostMessageW(g_win, WM_UPDATE, 0, 0); }
 
-static int http_get(const char *url, int timeout, char **out, DWORD *len) {
+static int http_get(const char *url, int timeout, char **out, DWORD *len, const WCHAR *headers) {
   WCHAR *w = widen(url), host[256], path[2048], extra[1024];
   URL_COMPONENTS uc = { sizeof uc };
   uc.lpszHostName = host; uc.dwHostNameLength = 256; uc.lpszUrlPath = path; uc.dwUrlPathLength = 2048;
@@ -262,7 +262,7 @@ static int http_get(const char *url, int timeout, char **out, DWORD *len) {
   WinHttpSetTimeouts(s, timeout, timeout, timeout, timeout);
   c = WinHttpConnect(s, host, uc.nPort, 0); if (!c) goto done;
   r = WinHttpOpenRequest(c, L"GET", path, NULL, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, uc.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0);
-  if (!r || !WinHttpSendRequest(r, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0) || !WinHttpReceiveResponse(r, NULL)) goto done;
+  if (!r || !WinHttpSendRequest(r, headers ? headers : WINHTTP_NO_ADDITIONAL_HEADERS, headers ? (DWORD)-1L : 0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0) || !WinHttpReceiveResponse(r, NULL)) goto done;
   DWORD code = 0, cl = sizeof code;
   WinHttpQueryHeaders(r, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_HEADER_NAME_BY_INDEX, &code, &cl, WINHTTP_NO_HEADER_INDEX);
   if (code != 200) goto done;
@@ -292,9 +292,23 @@ static DWORD WINAPI update_thread(void *arg) {
   g_version = cur->version;
   post_update(UP_CHECKING, 0);
 
-  char url[1024], *body; DWORD blen;
-  snprintf(url, sizeof url, "%sversion.json?t=%llu", g_updates, (unsigned long long)GetTickCount64());
-  if (!http_get(url, 6000, &body, &blen)) { post_update(UP_OFFLINE, 0); return 0; }
+  // GitHub's raw file server caches each file for 5 minutes, even with ?t=, so a fresh update could look missing.
+  // Ask the API for the newest commit and read everything from that commit's (never stale) address instead.
+  char url[1024], *body, base[600]; DWORD blen;
+  snprintf(base, sizeof base, "%s", g_updates);
+  const char *RAW = "https://raw.githubusercontent.com/";
+  if (!strncmp(g_updates, RAW, strlen(RAW))) {
+    char owner[128], repo[128], branch[128], *sha; DWORD sl;
+    if (sscanf(g_updates + strlen(RAW), "%127[^/]/%127[^/]/%127[^/]", owner, repo, branch) == 3) {
+      snprintf(url, sizeof url, "https://api.github.com/repos/%s/%s/commits/%s", owner, repo, branch);
+      if (http_get(url, 6000, &sha, &sl, L"Accept: application/vnd.github.sha\r\n")) {
+        if (sl >= 40 && strspn(sha, "0123456789abcdef") >= 40) { sha[40] = 0; snprintf(base, sizeof base, "%s%s/%s/%s/", RAW, owner, repo, sha); }
+        free(sha);
+      }
+    }
+  }
+  snprintf(url, sizeof url, "%sversion.json?t=%llu", base, (unsigned long long)GetTickCount64());
+  if (!http_get(url, 6000, &body, &blen, NULL)) { post_update(UP_OFFLINE, 0); return 0; }
   if (!manifest_parse(body, &remote) || !remote.n) { free(body); post_update(UP_FAILED, 0); return 0; }
   g_remote = remote.version;
   if (remote.version <= cur->version) { free(body); post_update(UP_CURRENT, 100); return 0; }
@@ -313,10 +327,10 @@ static DWORD WINAPI update_thread(void *arg) {
       if (data) { sha1_hex(data, n, h); if (strcmp(h, want)) { free(data); data = NULL; } }
     }
     if (!data) {
-      char fu[1024]; int k = snprintf(fu, sizeof fu, "%s", g_updates);
+      char fu[1024]; int k = snprintf(fu, sizeof fu, "%s", base);
       for (const char *c = rel; *c && k < 1000; c++) k += (*c == ' ') ? snprintf(fu + k, sizeof fu - k, "%%20") : snprintf(fu + k, sizeof fu - k, "%c", *c);
       snprintf(fu + k, sizeof fu - k, "?v=%d", remote.version);
-      if (!http_get(fu, 120000, &data, &n)) { ok = 0; break; }
+      if (!http_get(fu, 120000, &data, &n, NULL)) { ok = 0; break; }
       sha1_hex(data, n, h);
       if (strcmp(h, want)) { free(data); ok = 0; break; }   // bad download: keep playing what we have
     }
