@@ -526,11 +526,11 @@ let transition = null;
 const chase = { pos: new THREE.Vector3(), init: false, yaw: 0 };
 
 // --------------------------------------------------------------- mouse camera + hidden pointer while racing
-// Move the mouse to swing the camera around the car (chase views) or turn your head (bonnet/cockpit).
-// Let go and it eases back behind the car. The pointer is hidden and locked to the window during a race.
-const look = { yaw: 0, pitch: 0, idle: 9, ours: false };
+// Hold a mouse button and move to swing the camera around the car (chase views) or turn your head
+// (bonnet/cockpit). Let go and it eases back to the normal view. The pointer is hidden and locked during a race.
+const look = { yaw: 0, pitch: 0, idle: 9, ours: false, held: false };
 addEventListener('mousemove', e => {
-  if (G.state !== 'race') return;
+  if (G.state !== 'race' || !look.held) return;
   look.yaw = THREE.MathUtils.clamp(look.yaw - e.movementX * .0032, -Math.PI, Math.PI);
   look.pitch = THREE.MathUtils.clamp(look.pitch - e.movementY * .0024, -.35, .65);
   look.idle = 0;
@@ -543,7 +543,9 @@ function lockPointer() {
   tryLock({ unadjustedMovement: true }).catch(() => tryLock().catch(() => { }));
 }
 function releasePointer() { if (document.pointerLockElement) { look.ours = true; document.exitPointerLock(); } }
-renderer.domElement.addEventListener('mousedown', () => { if (G.state === 'race') lockPointer(); });
+addEventListener('mousedown', e => { if (G.state !== 'race') return; lockPointer(); look.held = true; look.idle = 0; });
+addEventListener('mouseup', () => { look.held = false; });
+addEventListener('blur', () => { look.held = false; });
 // Esc frees a locked pointer before the page sees the key, so losing the lock mid-race means "pause"
 document.addEventListener('pointerlockchange', () => {
   if (!document.pointerLockElement && G.state === 'race' && !look.ours) togglePause();
@@ -556,12 +558,13 @@ function syncRacingPointer() {
   racingCursor = racing;
   document.body.classList.toggle('racing', racing);
   if (racing) lockPointer(); else releasePointer();
+  look.held = false;
   if (racing) { look.yaw = look.pitch = 0; look.idle = 9; }
 }
-// ease the look back to centre once the mouse has been still for a moment
+// ease the look back to the normal view as soon as the button is let go
 function settleLook(dt) {
   look.idle += dt;
-  if (look.idle > 1.6) { const k = Math.min(1, dt * 2.6); look.yaw -= look.yaw * k; look.pitch -= look.pitch * k; }
+  if (!look.held) { const k = Math.min(1, dt * 2.6); look.yaw -= look.yaw * k; look.pitch -= look.pitch * k; }
 }
 function raceCamera(dt) {
   settleLook(dt);
@@ -595,7 +598,7 @@ function raceCamera(dt) {
     const a = chase.yaw + look.yaw, p = look.pitch, flat = Math.cos(p) * dist;
     const want = player.pos.clone().add(new THREE.Vector3(-Math.sin(a) * flat, Math.sin(p) * dist, -Math.cos(a) * flat)).addScaledVector(up, h);
     if (!chase.init) { chase.pos.copy(want); chase.init = true; }
-    chase.pos.lerp(want, Math.min(1, dt * (look.idle < .2 ? 16 : 9)));
+    chase.pos.lerp(want, Math.min(1, dt * (look.held ? 16 : 9)));
     chase.pos.y = Math.max(chase.pos.y, player.pos.y + .6);
     pos = chase.pos.clone();
     const ahead = 2.5 * Math.max(0, Math.cos(look.yaw));   // looking from the side or front, aim at the car itself

@@ -1,5 +1,5 @@
 {
- "version": 9,
+ "version": 10,
  "files": {
   "index.html": "63c42b5ba5e58517393e67839543c0b900178e01",
   "style.css": "b9a011cde767b26f5314d45208aa95b360d7187a",
@@ -33,7 +33,7 @@
   "src/hub.js": "dd4bd1d196840f2b8134a65443711341f26c454b",
   "src/hud.js": "2dc6675ec7ad8a3b39188f65a923ec9e5cd420cc",
   "src/intro.js": "a224e0726a3d2bda1aeb7294484d1d750e66838c",
-  "src/main.js": "d013197011587f5fff7e95d41c3a061c4d015c16",
+  "src/main.js": "0732012683bceca80a107e7f44864c8fb3825839",
   "src/menu.js": "7d4218ad8e68691d751b8789ae09c289627f5b24",
   "src/online.js": "9c808277e203af7083b4ea6ff6198b916ad6df79",
   "src/race.js": "6b6a8b5ecb099a766215381cdcf4d05b61334a16",
