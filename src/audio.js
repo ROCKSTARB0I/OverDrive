@@ -2,8 +2,14 @@
 // cabin controls and race cues. Everything is generated at load; no samples.
 import * as THREE from 'three';
 
-let ac = null;
+let ac = null, LOW = false;   // LOW: slow machine, lighter audio (see Sound.setLowPower)
 export function audioCtx() { return ac; }
+// for the F3 overlay: how far ahead audio is buffered, and how often it ran dry (where the browser reports it)
+export function audioStats() {
+  if (!ac) return null;
+  const ps = ac.playoutStats;
+  return { ms: Math.round(((ac.baseLatency || 0) + (ac.outputLatency || 0)) * 1000), rate: ac.sampleRate, dry: ps ? ps.fallbackFramesEvents : null, light: LOW };
+}
 
 function noiseBuffer(sec = 2, color = 'white') {
   const n = Math.floor(ac.sampleRate * sec), b = ac.createBuffer(1, n, ac.sampleRate), d = b.getChannelData(0);
@@ -111,7 +117,7 @@ class Engine {
     this.out = ac.createGain(); this.out.gain.value = 0;
     this.out.connect(out);
     this.lp = ac.createBiquadFilter(); this.lp.type = 'lowpass'; this.lp.Q.value = .9;
-    this.shaper = ac.createWaveShaper(); this.shaper.curve = shaperCurve(1.6); this.shaper.oversample = '2x';
+    this.shaper = ac.createWaveShaper(); this.shaper.curve = shaperCurve(1.6); this.shaper.oversample = LOW ? 'none' : '2x';
     this.body = ac.createBiquadFilter(); this.body.type = 'peaking'; this.body.frequency.value = 160; this.body.gain.value = 5; this.body.Q.value = .8;
     this.shaper.connect(this.lp); this.lp.connect(this.body); this.body.connect(this.out);
     this.srcs = [];
@@ -241,13 +247,20 @@ export class Sound {
     this.master.connect(comp); comp.connect(ac.destination);
     this.sfx = ac.createGain(); this.sfx.gain.value = this.settings.sfx; this.sfx.connect(this.master);
     this.musicBus = ac.createGain(); this.musicBus.gain.value = this.settings.music; this.musicBus.connect(this.master);
-    // reverbs: short "space" + long tunnel
-    this.verb = ac.createConvolver(); this.verb.buffer = B.ir;
+    // reverbs: short "space" + long tunnel. Convolution reverbs run nonstop even when silent; on slow machines
+    // a filtered feedback echo stands in for each, at a small fraction of the CPU.
+    const space = (ir, delay, fb) => {
+      if (!LOW) { const c = ac.createConvolver(); c.buffer = ir; return { in: c, out: c }; }
+      const i = ac.createGain(), d = ac.createDelay(1), g = ac.createGain(), lp = ac.createBiquadFilter();
+      d.delayTime.value = delay; g.gain.value = fb; lp.type = 'lowpass'; lp.frequency.value = 2400;
+      i.connect(d); d.connect(lp); lp.connect(g); g.connect(d);
+      return { in: i, out: lp };
+    };
+    const verb = space(B.ir, .047, .32), tun = space(B.tunnelIr, .093, .55);
     this.verbSend = ac.createGain(); this.verbSend.gain.value = .06;
-    this.verbSend.connect(this.verb); this.verb.connect(this.sfx);
-    this.tunnel = ac.createConvolver(); this.tunnel.buffer = B.tunnelIr;
+    this.verbSend.connect(verb.in); verb.out.connect(this.sfx);
     this.tunnelSend = ac.createGain(); this.tunnelSend.gain.value = 0;
-    this.tunnelSend.connect(this.tunnel); this.tunnel.connect(this.sfx);
+    this.tunnelSend.connect(tun.in); tun.out.connect(this.sfx);
     // car bus (player car) with an interior low-pass for cabin views
     this.carBus = ac.createGain(); this.carBus.gain.value = 0;
     this.cabin = ac.createBiquadFilter(); this.cabin.type = 'lowpass'; this.cabin.frequency.value = 20000;
@@ -273,7 +286,7 @@ export class Sound {
   }
 
   // slow machines (LOW graphics): fewer live engine voices, bigger audio buffer. Takes effect when sound starts.
-  setLowPower(on) { this.lowPower = on; }
+  setLowPower(on) { this.lowPower = on; if (!ac) LOW = on; }
 
   resume() { if (ac && ac.state !== 'running') ac.resume(); }
 

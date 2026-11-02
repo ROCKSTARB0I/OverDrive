@@ -7,7 +7,7 @@ import { buildWorld, buildLights } from './world.js';
 import { makeCar } from './carmodel.js';
 import { buildCockpit, EYE } from './cockpit.js';
 import { Vehicle } from './vehicle.js';
-import { Sound, audioCtx } from './audio.js';
+import { Sound, audioCtx, audioStats } from './audio.js';
 import { Radio } from './radio.js';
 import { Menu, loadSettings, saveSettings, loadBest, PAINTS, WHEEL_FINISHES, STRIPES, fmtTime } from './menu.js';
 import { Hud } from './hud.js';
@@ -471,7 +471,11 @@ function readInput() {
 }
 
 // --------------------------------------------------------------- pause / results
+let pausedAt = 0;
 function togglePause() {
+  // Esc can arrive twice (pointer unlock + the key itself); one press must only ever pause once
+  if (performance.now() - pausedAt < 250) return;
+  pausedAt = performance.now();
   if (G.state === 'race') { G.state = 'paused'; $('pause').classList.remove('hidden'); sound.silenceCar(); if (sound.engine) sound.engine.out.gain.setTargetAtTime(0, 0, .05); }
   else if (G.state === 'paused') { G.state = 'race'; $('pause').classList.add('hidden'); }
 }
@@ -520,7 +524,47 @@ function placeCar() {
 
 let transition = null;
 const chase = { pos: new THREE.Vector3(), init: false, yaw: 0 };
+
+// --------------------------------------------------------------- mouse camera + hidden pointer while racing
+// Move the mouse to swing the camera around the car (chase views) or turn your head (bonnet/cockpit).
+// Let go and it eases back behind the car. The pointer is hidden and locked to the window during a race.
+const look = { yaw: 0, pitch: 0, idle: 9, ours: false };
+addEventListener('mousemove', e => {
+  if (G.state !== 'race') return;
+  look.yaw = THREE.MathUtils.clamp(look.yaw - e.movementX * .0032, -Math.PI, Math.PI);
+  look.pitch = THREE.MathUtils.clamp(look.pitch - e.movementY * .0024, -.35, .65);
+  look.idle = 0;
+});
+function lockPointer() {
+  const el = renderer.domElement;
+  if (document.pointerLockElement === el || !el.requestPointerLock) return;
+  // raw mouse movement if the system allows it, plain lock otherwise; a refused lock just leaves the hidden pointer
+  const tryLock = opts => { try { const p = opts ? el.requestPointerLock(opts) : el.requestPointerLock(); return p && p.catch ? p : Promise.resolve(); } catch (e) { return Promise.reject(e); } };
+  tryLock({ unadjustedMovement: true }).catch(() => tryLock().catch(() => { }));
+}
+function releasePointer() { if (document.pointerLockElement) { look.ours = true; document.exitPointerLock(); } }
+renderer.domElement.addEventListener('mousedown', () => { if (G.state === 'race') lockPointer(); });
+// Esc frees a locked pointer before the page sees the key, so losing the lock mid-race means "pause"
+document.addEventListener('pointerlockchange', () => {
+  if (!document.pointerLockElement && G.state === 'race' && !look.ours) togglePause();
+  look.ours = false;
+});
+let racingCursor = false;
+function syncRacingPointer() {
+  const racing = G.state === 'race';
+  if (racing === racingCursor) return;
+  racingCursor = racing;
+  document.body.classList.toggle('racing', racing);
+  if (racing) lockPointer(); else releasePointer();
+  if (racing) { look.yaw = look.pitch = 0; look.idle = 9; }
+}
+// ease the look back to centre once the mouse has been still for a moment
+function settleLook(dt) {
+  look.idle += dt;
+  if (look.idle > 1.6) { const k = Math.min(1, dt * 2.6); look.yaw -= look.yaw * k; look.pitch -= look.pitch * k; }
+}
 function raceCamera(dt) {
+  settleLook(dt);
   const root = playerCar.root;
   const sp = Math.abs(player.vx);
   let fov = 62 + THREE.MathUtils.smoothstep(sp, 20, 95) * 14 + (player.nitroOn ? 7 : 0) + (player.boostT > 0 ? 4 : 0);
@@ -529,8 +573,11 @@ function raceCamera(dt) {
   if (cabin || bonnet) {
     const local = cabin ? EYE.clone().add(new THREE.Vector3(0, -.01, .02)) : new THREE.Vector3(0, 1.0, .9);
     pos = root.localToWorld(local.clone());
-    const look = root.localToWorld(local.clone().add(new THREE.Vector3(-player.steerIn * .4 * (cabin ? 1 : 0), -.06, 3)));
-    tmpM.lookAt(pos, look, tmpV.set(0, 1, 0).applyQuaternion(root.quaternion));
+    // head turn from the mouse: up to ~110 degrees each way, a little up and down
+    const hy = THREE.MathUtils.clamp(look.yaw, -1.9, 1.9), hp = THREE.MathUtils.clamp(look.pitch, -.3, .45);
+    const dir = new THREE.Vector3(-player.steerIn * .4 * (cabin ? 1 : 0), -.06, 3).applyAxisAngle(tmpV.set(1, 0, 0), -hp).applyAxisAngle(tmpV.set(0, 1, 0), hy);
+    const at = root.localToWorld(local.clone().add(dir));
+    tmpM.lookAt(pos, at, tmpV.set(0, 1, 0).applyQuaternion(root.quaternion));
     q = new THREE.Quaternion().setFromRotationMatrix(tmpM);
     chase.init = false;
     if (cabin) fov -= 4;
@@ -544,13 +591,16 @@ function raceCamera(dt) {
     let dy = target - chase.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
     chase.yaw += dy * Math.min(1, dt * 5);
     const up = player.loc.up;
-    const want = player.pos.clone().add(new THREE.Vector3(-Math.sin(chase.yaw) * dist, 0, -Math.cos(chase.yaw) * dist)).addScaledVector(up, h);
+    // the mouse swings the camera around the car (a = orbit angle) and up/down (p)
+    const a = chase.yaw + look.yaw, p = look.pitch, flat = Math.cos(p) * dist;
+    const want = player.pos.clone().add(new THREE.Vector3(-Math.sin(a) * flat, Math.sin(p) * dist, -Math.cos(a) * flat)).addScaledVector(up, h);
     if (!chase.init) { chase.pos.copy(want); chase.init = true; }
-    chase.pos.lerp(want, Math.min(1, dt * 9));
+    chase.pos.lerp(want, Math.min(1, dt * (look.idle < .2 ? 16 : 9)));
     chase.pos.y = Math.max(chase.pos.y, player.pos.y + .6);
     pos = chase.pos.clone();
-    const look = player.pos.clone().addScaledVector(up, .95).add(new THREE.Vector3(Math.sin(chase.yaw), 0, Math.cos(chase.yaw)).multiplyScalar(2.5));
-    tmpM.lookAt(pos, look, new THREE.Vector3(0, 1, 0));
+    const ahead = 2.5 * Math.max(0, Math.cos(look.yaw));   // looking from the side or front, aim at the car itself
+    const at = player.pos.clone().addScaledVector(up, .95).add(new THREE.Vector3(Math.sin(chase.yaw), 0, Math.cos(chase.yaw)).multiplyScalar(ahead));
+    tmpM.lookAt(pos, at, new THREE.Vector3(0, 1, 0));
     q = new THREE.Quaternion().setFromRotationMatrix(tmpM);
   }
   const shake = THREE.MathUtils.smoothstep(sp, 40, 95) * .004 + (player.offroad ? .01 : 0) + Math.min(.05, player.hitWall * .004) + (player.nitroOn ? .003 : 0);
@@ -646,9 +696,12 @@ function frame(now) {
   const raw = (now - last) / 1000, dt = Math.min(.05, raw); last = now;
   if (!hub || !cockpit || G.state === 'boot' || G.state === 'gate' || G.state === 'intro') return;
   gfx.perf(raw, now / 1000);
+  syncRacingPointer();
   if (fpsEl.style.display !== 'none' && G.quality) {
     const s = gfx.stats();
-    fpsEl.textContent = `${s.fps} FPS  ·  ${G.quality.name.toUpperCase()}${settings.quality === 'auto' || !QUALITY[settings.quality] ? ' (AUTO)' : ''}  ·  ${s.px[0]}x${s.px[1]} (${Math.round(s.scale * 100)}%)\n${G.quality.gpu}`;
+    const a = audioStats();
+    fpsEl.textContent = `${s.fps} FPS  ·  ${G.quality.name.toUpperCase()}${settings.quality === 'auto' || !QUALITY[settings.quality] ? ' (AUTO)' : ''}  ·  ${s.px[0]}x${s.px[1]} (${Math.round(s.scale * 100)}%)\n${G.quality.gpu}` +
+      (a ? `\nAUDIO ${a.ms} ms buffer  ·  ${a.rate} Hz${a.light ? '  ·  LIGHT' : ''}${a.dry != null ? `  ·  DROPOUTS ${a.dry}` : ''}` : '');
   }
   try { tick(dt); } catch (err) { console.error(err); }
 }

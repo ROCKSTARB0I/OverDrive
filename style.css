@@ -293,3 +293,6 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #000; color:
 button, a, label, select, input[type=checkbox], input[type=range] { cursor: var(--cur-hand); }
 input[type=text], input[type=password], input:not([type]), textarea { cursor: text; }
 button:disabled { cursor: var(--cur); }
+
+/* racing: no mouse pointer (the mouse moves the camera) */
+body.racing, body.racing * { cursor: none !important; }

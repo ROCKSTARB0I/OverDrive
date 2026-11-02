@@ -1,8 +1,8 @@
 {
- "version": 8,
+ "version": 9,
  "files": {
   "index.html": "63c42b5ba5e58517393e67839543c0b900178e01",
-  "style.css": "fd48e49692f286cf85dd8ddd5b0808f824e5412c",
+  "style.css": "b9a011cde767b26f5314d45208aa95b360d7187a",
   "launcher/hero.jpg": "fb919e831abc522cb542d34974bbecd1e20d49a4",
   "launcher/index.html": "b86b68c54525f9c0434020bfd6a616146265b67d",
   "launcher/launcher.css": "3efc457bffd228e511ba5d8fa85ea8be3d213a93",
@@ -23,7 +23,7 @@
   "media/idents/pulse2.m4a": "3e00525ec666548003ac636c98dca8376b4fa270",
   "media/idents/star1.m4a": "d6b6b1fad37c44cf6e557f01ac7175b20f6bd696",
   "media/idents/star2.m4a": "fe1cf90969e109d2b16c77733bc788a5f027ef19",
-  "src/audio.js": "a72ed34b1f53d1934e9f5bdbb921849d9dce0443",
+  "src/audio.js": "86e0173b1b0a3985f40e7a327e0aa447af247361",
   "src/career.js": "ce1757ce3927c7e2b67ddefad5234ad065b2a5e9",
   "src/carmodel.js": "ba8861c3796c195a2c6f9a6e13d9cf99c6af2798",
   "src/city.js": "5a57a4ce78c540b4f257a4df6fc652142ed29ef8",
@@ -33,7 +33,7 @@
   "src/hub.js": "dd4bd1d196840f2b8134a65443711341f26c454b",
   "src/hud.js": "2dc6675ec7ad8a3b39188f65a923ec9e5cd420cc",
   "src/intro.js": "a224e0726a3d2bda1aeb7294484d1d750e66838c",
-  "src/main.js": "b965a5a8795cc95ea2f09e53a0b851492f64cd46",
+  "src/main.js": "d013197011587f5fff7e95d41c3a061c4d015c16",
   "src/menu.js": "7d4218ad8e68691d751b8789ae09c289627f5b24",
   "src/online.js": "9c808277e203af7083b4ea6ff6198b916ad6df79",
   "src/race.js": "6b6a8b5ecb099a766215381cdcf4d05b61334a16",
