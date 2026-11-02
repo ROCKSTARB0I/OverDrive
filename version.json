@@ -1,5 +1,5 @@
 {
- "version": 6,
+ "version": 7,
  "files": {
   "index.html": "63c42b5ba5e58517393e67839543c0b900178e01",
   "style.css": "fd48e49692f286cf85dd8ddd5b0808f824e5412c",
@@ -23,7 +23,7 @@
   "media/idents/pulse2.m4a": "3e00525ec666548003ac636c98dca8376b4fa270",
   "media/idents/star1.m4a": "d6b6b1fad37c44cf6e557f01ac7175b20f6bd696",
   "media/idents/star2.m4a": "fe1cf90969e109d2b16c77733bc788a5f027ef19",
-  "src/audio.js": "f0fdf4014b586073cb23ed0d26cf1ac12325c790",
+  "src/audio.js": "a72ed34b1f53d1934e9f5bdbb921849d9dce0443",
   "src/career.js": "ce1757ce3927c7e2b67ddefad5234ad065b2a5e9",
   "src/carmodel.js": "ba8861c3796c195a2c6f9a6e13d9cf99c6af2798",
   "src/city.js": "5a57a4ce78c540b4f257a4df6fc652142ed29ef8",
@@ -33,7 +33,7 @@
   "src/hub.js": "dd4bd1d196840f2b8134a65443711341f26c454b",
   "src/hud.js": "2dc6675ec7ad8a3b39188f65a923ec9e5cd420cc",
   "src/intro.js": "d17d46d12668072727fcae5ed219dd364c42b4af",
-  "src/main.js": "992a8920397885064a4afb4e07ec3c2c0a2822e1",
+  "src/main.js": "c77708eba1f31c4ba9c684732cb58a47473e3a28",
   "src/menu.js": "7d4218ad8e68691d751b8789ae09c289627f5b24",
   "src/online.js": "9c808277e203af7083b4ea6ff6198b916ad6df79",
   "src/race.js": "6b6a8b5ecb099a766215381cdcf4d05b61334a16",
@@ -41,7 +41,7 @@
   "src/rivals.js": "e38f42db2c73463cf4400295892107408757487d",
   "src/terms.js": "a096d97d9c01697460f6c06f09d4b3e919b8ad0b",
   "src/tex.js": "960ea837677a36445575e7df0e285ff7f2a2ccf7",
-  "src/track.js": "9f0db51700fd32644209ce983976ed86f6dcbda6",
+  "src/track.js": "089aad107af5b58a44f19b6dc4808f9e3ead0d4b",
   "src/vehicle.js": "98039bb1307703d66969b2d730b8146fd0ce31a7",
   "src/world.js": "a52f3b0d781030f41bed9950764a2459643ac6b1",
   "vendor/fonts/Anton-400-5f6ded.woff2": "2e308a053bbe923bc2e48fbf0b350db2989a4333",

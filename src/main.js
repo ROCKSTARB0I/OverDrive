@@ -136,6 +136,7 @@ function applyQuality() {
   gfx.setQuality(name, [raceScene, hub.scene, menu.gScene, cockpit.group]);
   if (lights) lights.setQuality(QUALITY[name]);
   G.quality = { name, auto, gpu };
+  sound.setLowPower(name === 'low');
   menu.gfxAuto = auto;
   saveSettings(settings);
 }

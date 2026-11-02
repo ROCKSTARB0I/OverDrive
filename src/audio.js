@@ -231,7 +231,10 @@ export class Sound {
 
   init() {
     if (ac) return;
-    ac = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+    // The smallest ('interactive') buffer chops out on slower PCs whenever a frame runs long. The .exe and
+    // machines with 4 or fewer CPU threads get the larger 'playback' buffer: a few ms more delay, no dropouts.
+    const roomy = !!window.overdriveDesktop || (navigator.hardwareConcurrency || 8) <= 4 || this.lowPower;
+    ac = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: roomy ? 'playback' : 'interactive' });
     const B = buffers();
     this.master = ac.createGain(); this.master.gain.value = /[?&]mute/.test(location.search) ? 0 : .9;
     const comp = ac.createDynamicsCompressor(); comp.threshold.value = -10; comp.ratio.value = 4; comp.attack.value = .004; comp.release.value = .2;
@@ -260,7 +263,7 @@ export class Sound {
     // ambient city bed for the menu
     this.city = noiseVoice(this.sfx, B.brown, [['lowpass', 380, .6]]);
     this.rivals = [];
-    for (let k = 0; k < 3; k++) {
+    for (let k = 0; k < (this.lowPower ? 1 : 3); k++) {          // each rival engine is a live synth: LOW graphics hears only the nearest
       const p = ac.createPanner(); p.panningModel = 'equalpower'; p.distanceModel = 'inverse'; p.refDistance = 6; p.rolloffFactor = 1.2; p.maxDistance = 400;
       p.connect(this.sfx); p.connect(this.verbSend);
       const e = new Engine(p, { rival: true }); e.level = .55;
@@ -268,6 +271,9 @@ export class Sound {
     }
     this.ready = true;
   }
+
+  // slow machines (LOW graphics): fewer live engine voices, bigger audio buffer. Takes effect when sound starts.
+  setLowPower(on) { this.lowPower = on; }
 
   resume() { if (ac && ac.state !== 'running') ac.resume(); }
 

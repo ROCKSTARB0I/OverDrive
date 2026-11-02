@@ -291,7 +291,8 @@ function buildTunnels(tr) {
       // portal faces
       for (const j of [i0, i]) {
         const sh = new THREE.Shape();
-        sh.moveTo(-WALL - 6, 0); sh.lineTo(WALL + 6, 0); sh.lineTo(WALL + 6, 12); sh.lineTo(-WALL - 6, 12); sh.closePath();
+        // reaches 3 m below the road so it meets the ground wherever the road was raised above it
+        sh.moveTo(-WALL - 6, -3); sh.lineTo(WALL + 6, -3); sh.lineTo(WALL + 6, 12); sh.lineTo(-WALL - 6, 12); sh.closePath();
         const hole = new THREE.Path(); hole.moveTo(arch[0][0], 0);
         for (const [x, y] of arch) hole.lineTo(x, y);
         hole.lineTo(arch[A - 1][0], 0); sh.holes.push(hole);
@@ -299,7 +300,9 @@ function buildTunnels(tr) {
         const pm = new THREE.Mesh(pg, new THREE.MeshStandardMaterial({ color: 0x45423e, roughness: .9, side: THREE.DoubleSide }));
         const jj = j % N;
         pm.position.copy(tr.P[jj]);
-        const b = new THREE.Matrix4().makeBasis(tr.R[jj].clone().negate(), tr.U[jj], tr.T[jj].clone().negate());
+        // the face spans the road's sideways (R) and up (U) directions and faces along it. (R, U, -T) is a proper
+        // right-handed rotation; the old (-R, U, -T) was mirrored, which turned the face edge-on across the road.
+        const b = new THREE.Matrix4().makeBasis(tr.R[jj], tr.U[jj], tr.T[jj].clone().negate());
         pm.quaternion.setFromRotationMatrix(b);
         tr.group.add(pm);
       }
