@@ -2,6 +2,7 @@
 // lands wherever the broadcast has got to, mid-song, like real radio. Tuning crosses a band of static.
 // Songs and idents are listed in media/stations.json (built from Nathan's own songs).
 import { audioCtx } from './audio.js';
+import { serverBase } from './online.js';
 
 function seeded(seed) { let s = seed >>> 0 || 1; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 function hashStr(t) { let h = 2166136261; for (const c of t) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
@@ -20,8 +21,9 @@ export function unlock(buf, id) {
   for (let i = w.length << 2; i < out.length; i++) out[i] ^= kb[i & 65535];
   return out;
 }
-// Where the songs come from: the .exe and the local server have them right next to the game. The GitHub copy has none,
-// so it streams them (still locked) from the OVERDRIVE online server named in index.html.
+// Where the songs come from: the .exe and the local server have them right next to the game. The GitHub copy and the
+// Ruff Dogs Launcher copy have none, so they stream them (still locked) from the OVERDRIVE online server: the one named
+// in index.html, or the address the server manager publishes (the same lookup online play uses).
 const SERVER = ((window.overdriveDesktop && window.overdriveDesktop.server) || document.querySelector('meta[name="overdrive-server"]')?.content || '').trim().replace(/\/$/, '');
 let songBase = 'media/music/';
 const songPath = id => `${songBase}${id}.odm`;
@@ -67,7 +69,8 @@ export class Radio {
       // builds without the songs (the GitHub copy) simply have no music stations
       const first = (j.stations || []).flatMap(s => s.tracks || []).find(t => t.song);
       let haveSongs = first ? await songThere(first.song) : false;
-      if (first && !haveSongs && SERVER) { songBase = SERVER + '/media/music/'; haveSongs = await songThere(first.song); }
+      const server = first && !haveSongs ? (SERVER || await serverBase().catch(() => '')) : '';
+      if (server) { songBase = server.replace(/\/$/, '') + '/media/music/'; haveSongs = await songThere(first.song); }
       for (const s of j.stations || []) s.tracks = (s.tracks || []).filter(t => t.song ? haveSongs : t.file);
       this.stations = (j.stations || []).filter(s => s.tracks && s.tracks.length);
       for (const st of this.stations) this.schedule(st);

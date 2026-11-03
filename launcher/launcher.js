@@ -1,14 +1,17 @@
 // OVERDRIVE launch menu. Runs inside our own PC launcher (desktop/overdrive.c), which talks to it through
 // window.chrome.webview: the launcher sends update progress, the menu sends back "play", "quit", "fs:1"/"fs:0".
-// Opened in a plain browser it still works as a preview (PLAY just opens the game).
+// Inside the Ruff Dogs Launcher's game window (window.ruffDogs) it asks for quit/fullscreen at /_rd/... instead; that
+// window already updated the game before it opened. Opened in a plain browser it still works as a preview.
 const host = window.chrome && window.chrome.webview;
+const rd = !host && window.ruffDogs && window.ruffDogs.launcher;
+const rdSay = what => fetch('/_rd/' + what, { cache: 'no-store' }).catch(() => { });
 const $ = id => document.getElementById(id);
 const store = {
   get(k, d) { try { const v = localStorage.getItem('odl_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('odl_' + k, JSON.stringify(v)); } catch (e) { } },
 };
 const opts = { fs: store.get('fs', true) };
-if (!host) $('menu').querySelector('[data-act=quit]').remove();
+if (!host && !rd) $('menu').querySelector('[data-act=quit]').remove();
 
 // ------------------------------------------------------------------------------------------------ sound
 // The theme ("Sodium") and the menu sounds were composed and rendered from scratch for OVERDRIVE (tools/launcher-audio.js).
@@ -51,7 +54,7 @@ fetch('../media/stations.json').then(r => r.json()).then(j => {
 const esc = s => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 // ------------------------------------------------------------------------------------------------ update status from the launcher
-let phase = host ? 'checking' : 'browser', fsSent = false;
+let phase = host ? 'checking' : rd ? 'current' : 'browser', fsSent = false;
 const playBtn = $('menu').querySelector('[data-act=play]');
 function onUpdate(m) {
   phase = m.phase;
@@ -73,6 +76,11 @@ function onUpdate(m) {
   if (!fsSent) { fsSent = true; if (opts.fs && !m.fullscreen) host.postMessage('fs:1'); }
 }
 if (host) { host.addEventListener('message', e => { const m = e.data; if (m && m.t === 'update') onUpdate(m); }); host.postMessage('hello'); }
+else if (rd) {
+  $('dot').className = 'ok'; $('bar').className = 'hide'; $('stxt').textContent = 'RUFF DOGS LAUNCHER · UP TO DATE';
+  fetch('../version.json', { cache: 'no-store' }).then(r => r.json()).then(j => { if (j.version) { $('ver').textContent = `VERSION ${j.version}`; $('stxt').textContent = `RUFF DOGS LAUNCHER · VERSION ${j.version}`; } }).catch(() => { });
+  if (opts.fs) rdSay('fs1');
+}
 else { $('stxt').textContent = 'BROWSER PREVIEW'; $('dot').className = 'off'; $('bar').className = 'hide'; }
 
 // ------------------------------------------------------------------------------------------------ menu
@@ -107,7 +115,7 @@ function play() {
 }
 function quit() {
   busy = true; backSnd(); fadeTheme(.6); document.body.classList.add('quit');
-  setTimeout(() => host && host.postMessage('quit'), 750);
+  setTimeout(() => { if (host) host.postMessage('quit'); else if (rd) rdSay('quit'); }, 750);
 }
 
 // side panels (settings, credits): keyboard/gamepad move between their rows
@@ -137,7 +145,7 @@ document.querySelectorAll('[data-act=back]').forEach(b => b.addEventListener('cl
 document.querySelectorAll('.opt').forEach(r => r.addEventListener('mouseenter', () => { if (panel) { const k = panelRows().indexOf(r); if (k >= 0 && k !== pidx) focusRow(k); } }));
 
 $('optfs').checked = opts.fs;
-$('optfs').addEventListener('change', e => { opts.fs = e.target.checked; store.set('fs', opts.fs); host && host.postMessage(opts.fs ? 'fs:1' : 'fs:0'); });
+$('optfs').addEventListener('change', e => { opts.fs = e.target.checked; store.set('fs', opts.fs); if (host) host.postMessage(opts.fs ? 'fs:1' : 'fs:0'); else if (rd) rdSay(opts.fs ? 'fs1' : 'fs0'); });
 
 const KEYS = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
   Enter: 'ok', Space: 'ok', NumpadEnter: 'ok', Escape: 'back', Backspace: 'back' };

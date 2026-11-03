@@ -27,6 +27,8 @@ function findServer(again) {
   return lookup = get(LOOKUP_API, { Accept: 'application/vnd.github.raw+json' }).then(use)
     .catch(() => get(LOOKUP + '?t=' + Date.now()).then(use)).catch(() => { });
 }
+// the account server's address ('' = this same server); the radio streams its songs from there too
+export async function serverBase() { await findServer(); return API; }
 const TRACK_NAMES = ['NEON DOWNTOWN', 'HARBOR HIGHWAY'];
 const ICE = [{ urls: 'stun:stun.l.google.com:19302' }];
 
