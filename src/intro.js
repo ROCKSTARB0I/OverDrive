@@ -1,3 +1,4 @@
+import { serverBase } from './online.js';
 // Plays the Ruff Dogs "REDLINE" studio intro (media/redline.mp4, rendered by the intro lab) full screen with sound.
 // Any key, click or gamepad button skips it.
 export class Intro {
@@ -17,13 +18,18 @@ export class Intro {
       const ok = () => { this.ready = true; res(true); };
       if (v.readyState >= 4) return ok();
       v.addEventListener('canplaythrough', ok, { once: true });
-      // the GitHub copy doesn't carry the video (too big to upload there): stream it from the OVERDRIVE server instead
-      const server = ((window.overdriveDesktop && window.overdriveDesktop.server) || document.querySelector('meta[name="overdrive-server"]')?.content || '').trim().replace(/\/$/, '');
-      v.addEventListener('error', () => {
-        if (server && !v.src.startsWith(server)) { v.src = server + '/media/redline.mp4'; v.load(); }
+      // the GitHub and Ruff Dogs Launcher copies don't carry the video (too big to upload there): stream it from the
+      // OVERDRIVE server instead (the fixed one, or the address the server manager publishes)
+      const fixed = ((window.overdriveDesktop && window.overdriveDesktop.server) || document.querySelector('meta[name="overdrive-server"]')?.content || '').trim().replace(/\/$/, '');
+      let tried = false;
+      v.addEventListener('error', async () => {
+        if (tried) return res(false);
+        tried = true;
+        const server = (fixed || await serverBase().catch(() => '')).replace(/\/$/, '');
+        if (server) { v.src = server + '/media/redline.mp4'; v.load(); }
         else res(false);
       });
-      setTimeout(() => res(this.ready), 15000);
+      setTimeout(() => res(this.ready), 25000);   // streaming from the server can take a moment
       v.load();
     });
   }
