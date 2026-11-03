@@ -10,9 +10,9 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 // server manager keeps up to date whenever it opens the server's public tunnel (the address changes on restart).
 const DESKTOP = window.overdriveDesktop || null;
 const FIXED = ((DESKTOP && DESKTOP.server) || document.querySelector('meta[name="overdrive-server"]')?.content || '').trim().replace(/\/$/, '');
-const LOOKUP = !FIXED && (DESKTOP || /\.github\.io$/.test(location.hostname)) ? 'https://raw.githubusercontent.com/ROCKSTARB0I/OverDrive/main/server.json' : '';
+const LOOKUP = !FIXED && (DESKTOP || /\.github\.io$|\.ruffdogs\.game$/.test(location.hostname)) ? 'https://raw.githubusercontent.com/ROCKSTARB0I/OverDrive/main/server.json' : '';
 const LOOKUP_API = 'https://api.github.com/repos/ROCKSTARB0I/OverDrive/contents/server.json?ref=main';
-export const PLATFORM = DESKTOP ? 'PC' : 'WEB';
+export const PLATFORM = DESKTOP || /\.ruffdogs\.game$/.test(location.hostname) ? 'PC' : 'WEB';   // the .exe and the Ruff Dogs Launcher are PC
 let API = FIXED, lookedUp = 0, lookup = null;
 const wsUrl = () => (API ? API.replace(/^http/, 'ws') : `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`) + '/ws';
 const media = u => u && u.startsWith('/') ? API + u : u;   // avatars are served by the account server

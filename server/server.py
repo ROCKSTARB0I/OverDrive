@@ -10,6 +10,7 @@ switch crossplay off only see, invite and join players on their own platform.
 
 Also serves the static game (the Claude Atlas folder) with no-cache headers and byte-range support for media.
 HTTP  /api/register  /api/login  /api/me  /api/save  /api/avatar  /api/profile/<name>  /avatars/<file>
+      /api/community  /api/community/rate  /api/community/playtime   (Ruff Dogs Launcher: ratings + tags, play time; no free text)
 WS    /ws?token=...   JSON messages, see handle_msg()
 Data lives in ./data (users.json + avatars/). Passwords are stored as salted PBKDF2-SHA256 hashes only.
 """
@@ -71,6 +72,26 @@ def title_for(rec):
     for need, name in TITLES:
         if wins >= need: t = name
     return t
+
+# ------------------------------------------------------------------ community (Ruff Dogs Launcher)
+# Players rate games thumbs up/down with tags picked from a fixed list, and the launcher reports play time.
+# On purpose there is no free text and no messaging: nobody can write anything to anyone.
+GAME_RE = re.compile(r'^[a-z0-9-]{1,40}$')
+TAGS = ('Scary', 'Funny', 'Fun with friends', 'Great story', 'Hard', 'Relaxing', 'Good-looking', 'Great sound', 'Replayable', 'Buggy')
+def community_view(who=None):
+    games = {}
+    for gid, recs in (db.get('community') or {}).items():
+        g = games[gid] = {'up': 0, 'down': 0, 'tags': {}, 'players': 0, 'hours': 0.0}
+        for r in recs.values():
+            if r.get('up') is True: g['up'] += 1
+            elif r.get('up') is False: g['down'] += 1
+            for t in r.get('tags') or []: g['tags'][t] = g['tags'].get(t, 0) + 1
+            if r.get('secs', 0) > 60: g['players'] += 1
+            g['hours'] += r.get('secs', 0) / 3600
+        g['hours'] = round(g['hours'], 1)
+    out = {'games': games, 'tags': TAGS}
+    if who: out['mine'] = {gid: {'up': r.get('up'), 'tags': r.get('tags') or []} for gid, recs in (db.get('community') or {}).items() for u, r in recs.items() if u == who}
+    return out
 
 def user_for(token):
     return db['tokens'].get(token or '')
@@ -297,6 +318,8 @@ class H(BaseHTTPRequestHandler):
             with lock:
                 rows = sorted((public(n) for n in db['users']), key=lambda p: (-p['mpWins'], -p['wins'], -p['cash']))[:50]
             return self.reply(200, {'ranks': rows})
+        if u.path == '/api/community':
+            with lock: return self.reply(200, community_view(self.me()))
         if u.path.startswith('/avatars/'):
             f = os.path.join(AV, os.path.basename(u.path))
             if os.path.isfile(f):
@@ -384,6 +407,23 @@ class H(BaseHTTPRequestHandler):
                 with open(os.path.join(AV, fn), 'wb') as fh: fh.write(raw)
                 db['users'][who]['avatar'] = f'/avatars/{fn}?v={int(time.time())}'; save_db()
                 return self.reply(200, {'avatar': db['users'][who]['avatar']})
+        if u.path in ('/api/community/rate', '/api/community/playtime'):
+            who = self.me()
+            if not who: return self.reply(401, {'error': 'Sign in to do that'})
+            gid = str(b.get('game', ''))
+            if not GAME_RE.match(gid): return self.reply(400, {'error': 'Unknown game'})
+            with lock:
+                rec = db.setdefault('community', {}).setdefault(gid, {}).setdefault(who, {})
+                if u.path.endswith('/rate'):
+                    up = b.get('up')
+                    rec['up'] = up if up in (True, False) else None
+                    rec['tags'] = [t for t in TAGS if t in (b.get('tags') or [])][:3]
+                else:
+                    try: secs = int(b.get('secs', 0))
+                    except (TypeError, ValueError): secs = 0
+                    rec['secs'] = max(rec.get('secs', 0), min(max(secs, 0), 36_000_000))
+                rec['t'] = int(time.time()); save_db()
+                return self.reply(200, community_view(who))
         if u.path == '/api/logout':
             auth = self.headers.get('Authorization', '')
             with lock: db['tokens'].pop(auth[7:], None); save_db()
